@@ -1,0 +1,34 @@
+{
+  "name": "tracker-api",
+  "version": "1.0.0",
+  "description": "Tracker API",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon -r dotenv/config index.js",
+    "start": "node ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/atorov/tracker-api.git"
+  },
+  "author": "atorov",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/atorov/tracker-api/issues"
+  },
+  "homepage": "https://github.com/atorov/tracker-api#readme",
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "compression": "^1.7.4",
+    "express": "^4.17.1",
+    "helmet": "^4.1.1",
+    "mongoose": "^5.10.9"
+  },
+  "devDependencies": {
+    "dotenv": "^8.2.0",
+    "eslint": "^7.11.0",
+    "eslint-config-airbnb-base": "^14.2.0",
+    "eslint-plugin-import": "^2.22.1",
+    "nodemon": "^2.0.4"
+  }
+}
