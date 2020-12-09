@@ -4,14 +4,8 @@ const express = require('express')
 const helmet = require('helmet')
 const mongoose = require('mongoose');
 
-const visitSchema = new mongoose.Schema({
+const itemSchema = new mongoose.Schema({
     site: {
-        type: String,
-        required: true,
-        trim: true,
-        lowercase: true,
-    },
-    route: {
         type: String,
         required: true,
         trim: true,
@@ -24,9 +18,9 @@ const visitSchema = new mongoose.Schema({
     },
 })
 
-visitSchema.set('timestamps', true)
+itemSchema.set('timestamps', true)
 
-const Visit = mongoose.model('Visit', visitSchema);
+const Item = mongoose.model('Item', itemSchema);
 
 (async () => {
     try {
@@ -59,56 +53,78 @@ const Visit = mongoose.model('Visit', visitSchema);
     server.get('/api/health', (req, res) => res.json({ message: 'Server is up and running.' }))
 
     server.get('/api/sites', async (req, res) => {
-        let sites
+        let items
         try {
-            sites = await Visit.find({})
+            items = await Item.find({})
         }
         catch (reason) {
             return res.status(500).send(reason.message)
         }
 
-        sites = [...new Set(sites
-            .map((site) => site.toObject().site)
+        const sites = [...new Set(items
+            .map((item) => item.toObject().site)
             .filter((site) => site))]
 
         return res.json(sites)
     })
 
-    server.get('/api/visits/:site', async (req, res) => {
+    server.get('/api/items/:site', async (req, res) => {
         const { site } = req.params
 
-        let visits
+        let item
         try {
-            visits = await Visit.find({ site })
+            item = await Item.findOne({ site })
         }
         catch (reason) {
             return res.status(500).send(reason.message)
         }
 
-        return res.json(visits.map((visit) => visit.toObject({ getters: true })))
+        if (!item) {
+            return res.status(404).send('Could not find the item!')
+        }
+
+        return res.json(item.toObject({ getters: true }))
     })
 
-    server.post('/api/visits', async (req, res) => {
-        const { site, route, data } = req.body
+    server.post('/api/items', async (req, res) => {
+        const { site, data: itemData } = req.body
 
-        if (!site || !route || !data) {
+        if (!site || !itemData) {
             return res.status(422).send('Invalid data!')
         }
 
-        let visit
+        let item
         try {
-            visit = new Visit({
-                site,
-                route,
-                data,
-            })
-            await visit.save()
+            item = await Item.findOne({ site })
         }
         catch (reason) {
-            return res.status(500).send('Could not save the data!')
+            return res.status(500).send(reason.message)
         }
 
-        return res.status(201).json(visit.toObject({ getters: true }))
+        if (!item) {
+            try {
+                item = new Item({ site, data: { [Date.now()]: itemData } })
+                await item.save()
+            }
+            catch (reason) {
+                return res.status(500).send(reason.message)
+            }
+
+            return res.status(201).json(item.toObject({ getters: true }))
+        }
+
+        try {
+            item.data = {
+                ...item.data,
+                [Date.now()]: itemData,
+            }
+            await item.save()
+        }
+        catch (reason) {
+            return res.status(500).send(reason.message)
+        }
+
+        return res.status(200).json(item.toObject({ getters: true }))
     })
 
     server.use((req, res) => {
