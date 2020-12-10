@@ -24,6 +24,7 @@ const Item = mongoose.model('Item', itemSchema);
 
 (async () => {
     try {
+        console.log('::: Connecting to the database...')
         await mongoose.connect(
             `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.ekid9.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`,
             {
@@ -87,9 +88,20 @@ const Item = mongoose.model('Item', itemSchema);
     })
 
     server.post('/api/items', async (req, res) => {
-        const { site, data: itemData } = req.body
+        const { site, data: _itemData } = req.body
 
-        if (!site || !itemData) {
+        if (!site || !_itemData) {
+            return res.status(422).send('Invalid data!')
+        }
+
+        const itemData = Object.entries(_itemData).reduce((acc, [key, value]) => ({
+            ...acc,
+            [key]: Number(value),
+        }), {})
+
+        const isValid = Object.values(itemData)
+            .reduce((acc, value) => (Number(value) > 0 ? acc : false), true)
+        if (!isValid) {
             return res.status(422).send('Invalid data!')
         }
 
@@ -103,7 +115,7 @@ const Item = mongoose.model('Item', itemSchema);
 
         if (!item) {
             try {
-                item = new Item({ site, data: { [Date.now()]: itemData } })
+                item = new Item({ site, data: itemData })
                 await item.save()
             }
             catch (reason) {
@@ -114,10 +126,12 @@ const Item = mongoose.model('Item', itemSchema);
         }
 
         try {
-            item.data = {
-                ...item.data,
-                [Date.now()]: itemData,
-            }
+            const data = { ...item.data }
+            Object.entries(itemData).forEach(([key, value]) => {
+                data[key] = data[key] ? data[key] + Number(value) : Number(value)
+            })
+
+            item.data = data
             await item.save()
         }
         catch (reason) {
