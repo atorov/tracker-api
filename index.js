@@ -111,7 +111,7 @@ const Item = mongoose.model('Item', itemSchema);
         const rips = req.connection.remoteAddress ?? ''
         const ip = (hips ? hips.split(',').pop() : rips.split(',').pop()) ?? ''
         if (ip) {
-            itemData[`__clientIp;;${ip}`] = 1
+            itemData[`__clientIp;;${ip.replace(/\./g, '(dot)')}`] = 1
         }
         // ---------------------------------------------------------------------
 
