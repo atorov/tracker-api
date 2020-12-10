@@ -88,8 +88,18 @@ const Item = mongoose.model('Item', itemSchema);
     })
 
     server.post('/api/items', async (req, res) => {
-        const { site, data: _itemData } = req.body
+        // Retrieve client IPs --------------------------------------------------
+        const ips = req.headers['x-forwarded-for']
+        if (ips) {
+            console.log('### TODO: ips:', ips)
+        }
+        else {
+            console.log('### TODO: remoteAddress:', req.connection.remoteAddress)
+        }
+        // ---------------------------------------------------------------------
 
+        // Validate ------------------------------------------------------------
+        const { site, data: _itemData } = req.body
         if (!site || !_itemData) {
             return res.status(422).send('Invalid data!')
         }
@@ -104,7 +114,9 @@ const Item = mongoose.model('Item', itemSchema);
         if (!isValid) {
             return res.status(422).send('Invalid data!')
         }
+        // ---------------------------------------------------------------------
 
+        // Try to find an existing item ----------------------------------------
         let item
         try {
             item = await Item.findOne({ site })
@@ -112,7 +124,9 @@ const Item = mongoose.model('Item', itemSchema);
         catch (reason) {
             return res.status(500).send(reason.message)
         }
+        // ---------------------------------------------------------------------
 
+        // Create a new item ---------------------------------------------------
         if (!item) {
             try {
                 item = new Item({ site, data: itemData })
@@ -124,7 +138,9 @@ const Item = mongoose.model('Item', itemSchema);
 
             return res.status(201).json(item.toObject({ getters: true }))
         }
+        // ---------------------------------------------------------------------
 
+        // Update an existing item ---------------------------------------------
         try {
             const data = { ...item.data }
             Object.entries(itemData).forEach(([key, value]) => {
@@ -139,6 +155,7 @@ const Item = mongoose.model('Item', itemSchema);
         }
 
         return res.status(200).json(item.toObject({ getters: true }))
+        // ---------------------------------------------------------------------
     })
 
     server.use((req, res) => {
