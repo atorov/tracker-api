@@ -88,17 +88,6 @@ const Item = mongoose.model('Item', itemSchema);
     })
 
     server.post('/api/items', async (req, res) => {
-        // Retrieve client IPs --------------------------------------------------
-        const __headerIps = req.headers['x-forwarded-for'] ?? ''
-        const __remIps = req.connection.remoteAddress ?? ''
-        if (__headerIps) {
-            console.log('### TODO: ips:', __headerIps)
-        }
-        else {
-            console.log('### TODO: remoteAddress:', __remIps)
-        }
-        // ---------------------------------------------------------------------
-
         // Validate ------------------------------------------------------------
         const { site, data: _itemData } = req.body
         if (!site || !_itemData) {
@@ -117,6 +106,15 @@ const Item = mongoose.model('Item', itemSchema);
         }
         // ---------------------------------------------------------------------
 
+        // Retrieve client IPs --------------------------------------------------
+        const hips = req.headers['x-forwarded-for'] ?? ''
+        const rips = req.connection.remoteAddress ?? ''
+        const ip = (hips ? hips.split(',').pop() : rips.split(',').pop()) ?? ''
+        if (ip) {
+            itemData[`__clientIp;;${ip}`] = 1
+        }
+        // ---------------------------------------------------------------------
+
         // Try to find an existing item ----------------------------------------
         let item
         try {
@@ -131,7 +129,7 @@ const Item = mongoose.model('Item', itemSchema);
         if (!item) {
             try {
                 item = new Item({
-                    site, data: { ...itemData, ips: __headerIps, remAddr: __remIps },
+                    site, data: itemData,
                 })
                 await item.save()
             }
@@ -150,8 +148,6 @@ const Item = mongoose.model('Item', itemSchema);
                 data[key] = data[key] ? data[key] + Number(value) : Number(value)
             })
 
-            data.__headerIps = __headerIps
-            data.__remIps = __remIps
             item.data = data
             await item.save()
         }
