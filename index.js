@@ -90,11 +90,12 @@ const Item = mongoose.model('Item', itemSchema);
     server.post('/api/items', async (req, res) => {
         // Retrieve client IPs --------------------------------------------------
         const ips = req.headers['x-forwarded-for']
+        const remAddr = req.connection.remoteAddress
         if (ips) {
             console.log('### TODO: ips:', ips)
         }
         else {
-            console.log('### TODO: remoteAddress:', req.connection.remoteAddress)
+            console.log('### TODO: remoteAddress:', remAddr)
         }
         // ---------------------------------------------------------------------
 
@@ -129,7 +130,9 @@ const Item = mongoose.model('Item', itemSchema);
         // Create a new item ---------------------------------------------------
         if (!item) {
             try {
-                item = new Item({ site, data: itemData })
+                item = new Item({
+                    site, data: itemData, ips, remAddr,
+                })
                 await item.save()
             }
             catch (reason) {
@@ -148,6 +151,8 @@ const Item = mongoose.model('Item', itemSchema);
             })
 
             item.data = data
+            item.ips = ips
+            item.remAddr = remAddr
             await item.save()
         }
         catch (reason) {
