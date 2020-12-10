@@ -89,13 +89,13 @@ const Item = mongoose.model('Item', itemSchema);
 
     server.post('/api/items', async (req, res) => {
         // Retrieve client IPs --------------------------------------------------
-        const ips = req.headers['x-forwarded-for']
-        const remAddr = req.connection.remoteAddress
-        if (ips) {
-            console.log('### TODO: ips:', ips)
+        const __headerIps = req.headers['x-forwarded-for'] ?? ''
+        const __remIps = req.connection.remoteAddress ?? ''
+        if (__headerIps) {
+            console.log('### TODO: ips:', __headerIps)
         }
         else {
-            console.log('### TODO: remoteAddress:', remAddr)
+            console.log('### TODO: remoteAddress:', __remIps)
         }
         // ---------------------------------------------------------------------
 
@@ -110,8 +110,8 @@ const Item = mongoose.model('Item', itemSchema);
             [key]: Number(value),
         }), {})
 
-        const isValid = Object.values(itemData)
-            .reduce((acc, value) => (Number(value) > 0 ? acc : false), true)
+        const isValid = Object.entries(itemData)
+            .reduce((acc, [key, value]) => !key.startsWith('__') && (Number(value) > 0 ? acc : false), true)
         if (!isValid) {
             return res.status(422).send('Invalid data!')
         }
@@ -131,7 +131,7 @@ const Item = mongoose.model('Item', itemSchema);
         if (!item) {
             try {
                 item = new Item({
-                    site, data: itemData, ips, remAddr,
+                    site, data: { ...itemData, ips: __headerIps, remAddr: __remIps },
                 })
                 await item.save()
             }
@@ -150,9 +150,9 @@ const Item = mongoose.model('Item', itemSchema);
                 data[key] = data[key] ? data[key] + Number(value) : Number(value)
             })
 
+            data.__headerIps = __headerIps
+            data.__remIps = __remIps
             item.data = data
-            item.ips = ips
-            item.remAddr = remAddr
             await item.save()
         }
         catch (reason) {
