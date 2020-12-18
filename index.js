@@ -159,6 +159,10 @@ const Item = mongoose.model('Item', itemSchema);
         // ---------------------------------------------------------------------
     })
 
+    server.options('/api/*', (req, res) => {
+        res.sendStatus(200)
+    })
+
     server.use((req, res) => {
         res.status(404).send('Could not find this route!')
     })
